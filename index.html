@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ChainGrade — Cryptographic Milestone Ledger</title>
-  <link rel=\"stylesheet\" href=\"style.css\" />
+  <link rel="stylesheet" href="style.css" />
   <style>
     .landing-hero {
       max-width: 760px;
@@ -61,7 +61,7 @@
   <div class="landing-hero">
     <h1 class="utility-headline">Cryptographically Anchor Work History.<br>Automate Cross-Collaborative Verification.</h1>
     <p class="system-context">
-      Traditional asset logging and review workflows depend on mutable centralized silos, exposing data profiles to alteration or baseline tracking loss. This node logs structural engineering milestones directly to an immutable ledger state, utilizing cryptographic authorization layers for multi-party confirmation.
+      Traditional asset logging and review workflows depend on mutable centralized silos, exposing data profiles to alteration or baseline tracking loss. This node logs structural engineering milestones cryptographically, ensuring immutable audit trails for collaborative engineering teams.
     </p>
 
     <div style="display: flex; justify-content: center; gap: 15px; margin-bottom: 2rem;">
@@ -79,7 +79,7 @@
       <button id="tab-step3" class="filter-pill" onclick="showEngineStep(3)">3. Consensus State</button>
     </div>
     <div id="engine-preview-display" class="preview-box">
-      </div>
+    </div>
   </div>
 
   <script>
@@ -90,15 +90,15 @@
     const pipelineSteps = {
       1: {
         title: "Provenance Anchor Authentication",
-        desc: "The interface queries window.ethereum to parse your cryptographic identity signature. Authorization relies strictly on address properties, bypassing off-chain records or centralized account matrices."
+        desc: "The interface queries window.ethereum to parse your cryptographic identity signature. Authorization relies strictly on address properties, bypassing off-chain records or centralized account systems. This ensures that project ownership is strictly bound to wallet possession."
       },
       2: {
         title: "Distributed File Encryption & Staging",
-        desc: "File assets are mapped locally within browser memory and transmitted directly to the distributed IPFS layer. Cryptographic hashes tie work assets permanently to owner addresses before ledger entry."
+        desc: "File assets are mapped locally within browser memory and transmitted directly to the distributed IPFS layer. Cryptographic hashes tie work assets permanently to owner addresses before ledger commitment. All data remains encrypted during transit and storage."
       },
       3: {
         title: "Ledger State Locking",
-        desc: "State changes execute by calling verifyProject functions within the contract code. Validators lock consensus confirmations on-chain, creating audit trails that resist outside modification."
+        desc: "State changes execute by calling verifyProject functions within the contract code. Validators lock consensus confirmations on-chain, creating audit trails that resist outside modification. Once committed, milestone records become part of the immutable blockchain history."
       }
     };
 
@@ -107,7 +107,7 @@
       document.getElementById('tab-step' + step).classList.add('active');
       
       const data = pipelineSteps[step];
-      document.getElementById('engine-preview-display').innerHTML = `<strong>${data.title}</strong>${data.desc}`;
+      document.getElementById('engine-preview-display').innerHTML = `<strong>${data.title}</strong><br>${data.desc}`;
     }
 
     function setStatus(msg) {
@@ -146,7 +146,7 @@
         updateConnectBtn(userAddress);
 
         const currentChain = await window.ethereum.request({ method: 'eth_chainId' });
-        if (currentChain.toLowerCase() === POLYGON_AMOY.chainId) {
+        if (currentChain === POLYGON_AMOY.chainId) {
           localStorage.setItem(LS_NETWORK_KEY, '1');
           setStatus('Identity verified on Polygon Amoy. Initializing dashboard sync...');
           setTimeout(() => { window.location.href = 'dashboard.html'; }, 600);
