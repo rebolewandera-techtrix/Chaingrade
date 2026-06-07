@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChainGrade — Verification Infrastructure Matrix</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .hiw-stage {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .hiw-stage:last-of-type { border-bottom: none; }
+
+    .stage-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .hiw-stage h2 {
+      font-size: clamp(1.3rem, 3.5vw, 1.7rem);
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 0.85rem;
+      line-height: 1.25;
+    }
+
+    .plain-explain {
+      font-size: 1rem;
+      color: var(--text-muted);
+      line-height: 1.85;
+      margin-bottom: 1.25rem;
+    }
+
+    .interactive-simulation-box {
+      background: var(--surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .reviewer-nodes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .reviewer-node-card {
+      background: var(--background);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 1rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .reviewer-node-card:hover {
+      border-color: var(--accent-blue);
+      background: #f1f5f9;
+    }
+
+    .reviewer-node-card.approved {
+      border-color: var(--accent-green);
+      background: #f0fdf4;
+    }
+
+    .node-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .node-status {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: monospace;
+    }
+
+    .reviewer-node-card.approved .node-status {
+      color: var(--accent-green);
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="logo" onclick="window.location.href='index.html'">ChainGrade</div>
+    <button class="outline-btn" onclick="window.location.href='index.html'">Return to Initialization Gateway</button>
+  </nav>
+
+  <div class="hiw-stage">
+    <div class="stage-label">Pipeline Block 01</div>
+    <h2>Decentralized Payload Staging</h2>
+    <p class="plain-explain">
+      When assets are committed inside the execution panel, files do not route to a centralized database server. Instead, your client browser fragments the data payload, generating a deterministic cryptographic Content Identifier (CID). This hash string is pinned straight onto distributed IPFS clusters, mapping file signatures cleanly before block recording.
+    </p>
+  </div>
+
+  <div class="hiw-stage">
+    <div class="stage-label">Pipeline Block 02</div>
+    <h2>State Modification Locks</h2>
+    <p class="plain-explain">
+      Every verified proof-of-work record requires an explicit wallet signature execution. By routing data structs via the Solidity recordProject interface on Polygon Amoy, tracking entries lock permanently into consensus logs. This avoids database alteration risks and guarantees verification permanence across network nodes.
+    </p>
+  </div>
+
+  <div class="hiw-stage">
+    <div class="stage-label">Pipeline Block 03</div>
+    <h2>Multi-Party Verification Consensus</h2>
+    <p class="plain-explain">
+      To prevent administrative single-point authority issues, verification requires multi-party confirmation metrics. Below is an interactive simulation demonstrating how peer signature tokens modify contract states on-chain when thresholds are successfully satisfied.
+    </p>
+
+    <div class="interactive-simulation-box">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h4 style="font-size: 0.95rem; font-weight: 700;">Multi-Sig Validation Tracker</h4>
+        <span id="a-badge" class="badge">Awaiting Signatures</span>
+      </div>
+
+      <div class="reviewer-nodes-grid">
+        <div id="rv1" class="reviewer-node-card" onclick="approveReviewer(1)">
+          <span class="node-title">Validation Key 0x4fA1…</span>
+          <span id="rv1s" class="node-status">Click to sign</span>
+        </div>
+        <div id="rv2" class="reviewer-node-card" onclick="approveReviewer(2)">
+          <span class="node-title">Validation Key 0x9bE2…</span>
+          <span id="rv2s" class="node-status">Click to sign</span>
+        </div>
+        <div id="rv3" class="reviewer-node-card" onclick="approveReviewer(3)">
+          <span class="node-title">Validation Key 0x7cD3…</span>
+          <span id="rv3s" class="node-status">Click to sign</span>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-muted);">
+        <span id="a-count">0 / 3 approvals</span>
+        <button class="outline-btn" style="padding: 4px 10px; font-size: 0.75rem;" onclick="resetApprovalSim()">Reset Matrix</button>
+      </div>
+
+      <div id="a-success" style="display: none; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+        <p style="font-size: 0.85rem; color: var(--accent-green); font-weight: 600; margin-bottom: 0.25rem;">Consensus Validated Successfully</p>
+        <p id="a-tx" style="font-size: 0.75rem; font-family: monospace; color: var(--text-muted);"></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var aVotes = [false, false, false];
+    var aThreshold = 2;
+    var aDone = false;
+
+    function approveReviewer(nodeIndex) {
+      if (aDone || aVotes[nodeIndex - 1]) return;
+
+      aVotes[nodeIndex - 1] = true;
+      var card = document.getElementById('rv' + nodeIndex);
+      var status = document.getElementById('rv' + nodeIndex + 's');
+
+      card.classList.add('approved');
+      card.onclick = null;
+
+      var d = new Date();
+      status.textContent = '✓ Signed ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+
+      var count = aVotes.filter(Boolean).length;
+      document.getElementById('a-count').textContent = count + ' / 3 approvals';
+
+      if (count >= aThreshold) {
+        aDone = true;
+        var badge = document.getElementById('a-badge');
+        badge.className = 'badge success';
+        badge.textContent = 'Verified State Locked';
+        var success = document.getElementById('a-success');
+        success.style.display = 'block';
+        document.getElementById('a-tx').textContent =
+          'tx: 0x5e2c…1a4b · block consensus confirmed · ' + count + ' signatures committed on-chain';
+      }
+    }
+
+    function resetApprovalSim() {
+      aVotes = [false, false, false];
+      aDone = false;
+      [1, 2, 3].forEach(function (n) {
+        var card = document.getElementById('rv' + n);
+        card.classList.remove('approved');
+        card.onclick = function () { approveReviewer(n); };
+        document.getElementById('rv' + n + 's').textContent = 'Click to sign';
+      });
+      document.getElementById('a-count').textContent = '0 / 3 approvals';
+      document.getElementById('a-success').style.display = 'none';
+      var badge = document.getElementById('a-badge');
+      badge.className = 'badge';
+      badge.textContent = 'Awaiting Signatures';
+    }
+  </script>
+
+</body>
+</html>

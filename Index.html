@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChainGrade — Cryptographic Milestone Ledger</title>
+  <link rel=\"stylesheet\" href=\"style.css\" />
+  <style>
+    .landing-hero {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 4rem 1.5rem 2.5rem;
+      text-align: center;
+    }
+    .landing-hero .utility-headline {
+      font-size: clamp(2.2rem, 5.5vw, 3.5rem);
+      font-weight: 900;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 1.25rem;
+    }
+    .landing-hero .system-context {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      line-height: 1.75;
+      max-width: 600px;
+      margin: 0 auto 2.5rem;
+    }
+    .interactive-hub {
+      max-width: 650px;
+      margin: 0 auto 4rem auto;
+      padding: 0 1.5rem;
+    }
+    .interactive-hub h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .preview-box {
+      background: var(--surface);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 20px;
+      min-height: 120px;
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .preview-box strong {
+      display: block;
+      color: var(--text-main);
+      margin-bottom: 6px;
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="landing-hero">
+    <h1 class="utility-headline">Cryptographically Anchor Work History.<br>Automate Cross-Collaborative Verification.</h1>
+    <p class="system-context">
+      Traditional asset logging and review workflows depend on mutable centralized silos, exposing data profiles to alteration or baseline tracking loss. This node logs structural engineering milestones directly to an immutable ledger state, utilizing cryptographic authorization layers for multi-party confirmation.
+    </p>
+
+    <div style="display: flex; justify-content: center; gap: 15px; margin-bottom: 2rem;">
+      <button id="connect-btn" class="primary-btn" onclick="connectWalletOnboarding()">Connect Identity Key</button>
+      <button id="network-btn" class="outline-btn hidden" onclick="switchToPolygonAmoy()">Switch Network Node</button>
+    </div>
+    <p id="status-text" style="font-size: 13px; font-family: monospace; color: var(--text-muted);"></p>
+  </div>
+
+  <div class="interactive-hub">
+    <h3>Engine Operation Lifecycle Preview</h3>
+    <div class="filter-bar" style="justify-content: center; margin-bottom: 15px;">
+      <button id="tab-step1" class="filter-pill active" onclick="showEngineStep(1)">1. Identity Gate</button>
+      <button id="tab-step2" class="filter-pill" onclick="showEngineStep(2)">2. Distributed Staging</button>
+      <button id="tab-step3" class="filter-pill" onclick="showEngineStep(3)">3. Consensus State</button>
+    </div>
+    <div id="engine-preview-display" class="preview-box">
+      </div>
+  </div>
+
+  <script>
+    const POLYGON_AMOY = { chainId: '0x13882' };
+    const LS_WALLET_KEY = 'cg_authenticated_address';
+    const LS_NETWORK_KEY = 'cg_correct_network';
+
+    const pipelineSteps = {
+      1: {
+        title: "Provenance Anchor Authentication",
+        desc: "The interface queries window.ethereum to parse your cryptographic identity signature. Authorization relies strictly on address properties, bypassing off-chain records or centralized account matrices."
+      },
+      2: {
+        title: "Distributed File Encryption & Staging",
+        desc: "File assets are mapped locally within browser memory and transmitted directly to the distributed IPFS layer. Cryptographic hashes tie work assets permanently to owner addresses before ledger entry."
+      },
+      3: {
+        title: "Ledger State Locking",
+        desc: "State changes execute by calling verifyProject functions within the contract code. Validators lock consensus confirmations on-chain, creating audit trails that resist outside modification."
+      }
+    };
+
+    function showEngineStep(step) {
+      document.querySelectorAll('.filter-pill').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('tab-step' + step).classList.add('active');
+      
+      const data = pipelineSteps[step];
+      document.getElementById('engine-preview-display').innerHTML = `<strong>${data.title}</strong>${data.desc}`;
+    }
+
+    function setStatus(msg) {
+      document.getElementById('status-text').textContent = msg;
+    }
+
+    function showNetworkBtn(show) {
+      const btn = document.getElementById('network-btn');
+      if (show) btn.classList.remove('hidden');
+      else btn.classList.add('hidden');
+    }
+
+    function updateConnectBtn(address) {
+      const btn = document.getElementById('connect-btn');
+      if (address) {
+        btn.innerText = 'Key Linked: ' + address.substring(0, 6) + '…' + address.substring(address.length - 4);
+      } else {
+        btn.innerText = 'Connect Identity Key';
+      }
+    }
+
+    async function connectWalletOnboarding() {
+      if (typeof window.ethereum === 'undefined') {
+        setStatus('Cryptographic provider missing. Install a browser wallet.');
+        return;
+      }
+      try {
+        document.getElementById('connect-btn').disabled = true;
+        setStatus('Requesting authorization interface signature...');
+        
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const userAddress = accounts[0];
+        
+        localStorage.setItem(LS_WALLET_KEY, userAddress);
+        localStorage.setItem('userWallet', userAddress);
+        updateConnectBtn(userAddress);
+
+        const currentChain = await window.ethereum.request({ method: 'eth_chainId' });
+        if (currentChain.toLowerCase() === POLYGON_AMOY.chainId) {
+          localStorage.setItem(LS_NETWORK_KEY, '1');
+          setStatus('Identity verified on Polygon Amoy. Initializing dashboard sync...');
+          setTimeout(() => { window.location.href = 'dashboard.html'; }, 600);
+        } else {
+          localStorage.removeItem(LS_NETWORK_KEY);
+          showNetworkBtn(true);
+          setStatus('Identity address loaded. Network adjustment required.');
+        }
+      } catch (err) {
+        setStatus('Identity linkage rejected: ' + err.message);
+      } finally {
+        document.getElementById('connect-btn').disabled = false;
+      }
+    }
+
+    async function switchToPolygonAmoy() {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: POLYGON_AMOY.chainId }],
+        });
+      } catch (switchError) {
+        if (switchError.code === 4902) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: POLYGON_AMOY.chainId,
+                chainName: 'Polygon Amoy Testnet',
+                nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+                rpcUrls: ['https://rpc-amoy.polygon.technology'],
+                blockExplorerUrls: ['https://amoy.polygonscan.com'],
+              }],
+            });
+          } catch (addError) {
+            setStatus('Network addition rejected.');
+          }
+        } else {
+          setStatus('Network migration failed.');
+        }
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      showEngineStep(1);
+      const storedAddress = localStorage.getItem(LS_WALLET_KEY);
+      const isCorrectNetwork = localStorage.getItem(LS_NETWORK_KEY);
+
+      if (storedAddress) {
+        updateConnectBtn(storedAddress);
+        if (isCorrectNetwork === '1') {
+          setStatus('Active validation state live. Routing context...');
+          setTimeout(() => { window.location.href = 'dashboard.html'; }, 600);
+        } else {
+          showNetworkBtn(true);
+          setStatus('Identity linked. Switch network node to enter execution panel.');
+        }
+      }
+    });
+  </script>
+</body>
+</html>

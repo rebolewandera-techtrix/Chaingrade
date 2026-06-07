@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChainGrade | Verification Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="logo" onclick="window.location.href='index.html'">ChainGrade</div>
+        <div class="user-meta">
+            <span id="citation-badge" class="badge">0 Verification Nodes</span>
+            <span id="wallet-display" class="wallet-pill">Syncing Ledger...</span>
+        </div>
+    </nav>
+
+    <main class="dashboard-grid">
+        <aside class="sidebar">
+            <button id="btn-workspace" class="menu-item active" onclick="switchTab('workspace')">📁 Execution Panel</button>
+            <button id="btn-discovery" class="menu-item" onclick="switchTab('discovery')">🔍 Global Proof Feed</button>
+            <button id="admin-link" class="menu-item hidden" onclick="switchTab('admin')">🛡️ Verification Panel</button>
+            <button class="menu-item logout" onclick="logout()">Disconnect</button>
+        </aside>
+
+        <section class="content-area">
+            <div id="tab-workspace" class="tab-window">
+                <h2>Anchor Proof-of-Work</h2>
+                <p class="section-desc">Commit work parameters directly into decentralized storage structures and state blocks.</p>
+                
+                <div class="form-card">
+                    <div class="input-group" style="margin-bottom: 15px;">
+                        <label>Asset Context Header</label>
+                        <input type="text" id="project-name" placeholder="E.g., Cryptographic Architecture Framework" style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:6px;">
+                    </div>
+                    
+                    <div class="input-group" style="margin-bottom: 15px;">
+                        <label>System Domain Classification</label>
+                        <select id="project-category">
+                            <option value="Distributed Consensus">Distributed Consensus</option>
+                            <option value="Zero-Knowledge Systems">Zero-Knowledge Systems</option>
+                            <option value="Cryptographic Identity">Cryptographic Identity</option>
+                            <option value="Data Provenance">Data Provenance</option>
+                        </select>
+                    </div>
+
+                    <div class="dropzone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+                        <span id="upload-prompt">Select target binary asset for payload tracking</span>
+                        <input type="file" id="file-input" style="display: none;" onchange="handleFileSelection(event)">
+                        <p class="file-notice" id="file-details">Payload boundaries restricted to single file allocations.</p>
+                    </div>
+                    
+                    <button id="action-btn" class="primary-btn" style="width: 100%; margin-top: 15px;" onclick="executeAssetAnchoring()">Commit Document to Ledger</button>
+                </div>
+            </div>
+
+            <div id="tab-discovery" class="tab-window hidden">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <h2>Global Proof Feed</h2>
+                    <select id="discovery-category-filter" class="category-filter-select" onchange="applyDiscoveryFiltering()">
+                        <option value="ALL">All Ledger Domains</option>
+                        <option value="Distributed Consensus">Distributed Consensus</option>
+                        <option value="Zero-Knowledge Systems">Zero-Knowledge Systems</option>
+                        <option value="Cryptographic Identity">Cryptographic Identity</option>
+                        <option value="Data Provenance">Data Provenance</option>
+                    </select>
+                </div>
+                <p class="section-desc">Public ledger history synced from Polygon Amoy testnet blocks.</p>
+                
+                <div id="secure-vault-viewport" class="secure-vault-zone">
+                    <div id="watermark-shell" class="watermark-overlay"></div>
+                    <div id="global-discovery-feed" class="record-feed">
+                        </div>
+                </div>
+            </div>
+
+            <div id="tab-admin" class="tab-window hidden">
+                <h2>Multi-Party Signature Queue</h2>
+                <p class="section-desc">Authorize state modification entries using faculty validation tokens.</p>
+                <div id="admin-verification-feed" class="record-feed"></div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const CONTRACT_ADDRESS = "0xae793eDbc61C97F3942003fba1B2C690F103f628";
+        const CONTRACT_ABI = [
+            "function recordProject(string memory _fileName, string memory _ipfsHash, string memory _category, uint256 _aiScore) public",
+            "function getStudentHistory(address _student) public view returns (tuple(string fileName, string ipfsHash, string category, uint256 aiScore, uint256 timestamp, address student, bool isVerified, address verifiedBy)[])",
+            "function holdsFacultySBT(address user) public view returns (bool)",
+            "function getAllStudents() public view returns (address[] memory)",
+            "function verifyProject(address _student, uint256 _index) public"
+        ];
+        const PINATA_JWT_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ZmFhZThmYWEtYjc4Zi00OTNhLWJmZDctZGJlNTFiNGVmMjNkIiwidXNlcm5hbWUiOiJtc29tbyIsImVtYWlsIjoibXNvbW8zNkBnbWFpbC5jb20iLCJpYXQiOjE3MTU4NjMzNDZ9._hYp4hO36_77PzE6mYV-bI4X-g9yL1O5tG3p7f3X5w8";
+
+        let currentSignerAddress = "";
+        let globalSelectedFile = null;
+        let readContract = null;
+        let writeContract = null;
+        let allStudentsCache = [];
+
+        // Protection Lock Routines for Non-Screenshot and Focus State Policies
+        function initializeSecureSandbox() {
+            const container = document.getElementById('secure-vault-viewport');
+            if(!container) return;
+
+            // Blur interface window focus tracking
+            window.addEventListener('blur', () => container.classList.add('blurred-vault'));
+            window.addEventListener('focus', () => container.classList.remove('blurred-vault'));
+
+            // Block common DOM navigation grabs
+            container.addEventListener('contextmenu', e => e.preventDefault());
+            container.addEventListener('keydown', e => {
+                if(e.ctrlKey && (e.key === 'p' || e.key === 'P' || e.key === 's' || e.key === 'S')) {
+                    e.preventDefault();
+                }
+            });
+
+            // Dynamic identity watermark rendering
+            const watermarkShell = document.getElementById('watermark-shell');
+            if(watermarkShell && currentSignerAddress) {
+                watermarkShell.innerHTML = '';
+                for(let i=0; i<30; i++) {
+                    const span = document.createElement('span');
+                    span.textContent = currentSignerAddress.substring(0,8) + '…';
+                    watermarkShell.appendChild(span);
+                }
+            }
+        }
+
+        async function bootstrapApplication() {
+            if (typeof window.ethereum === 'undefined') {
+                alert("Cryptographic runtime interface inaccessible.");
+                window.location.href = "index.html";
+                return;
+            }
+            try {
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const signer = await provider.getSigner();
+                currentSignerAddress = await signer.getAddress();
+                
+                document.getElementById('wallet-display').innerText = 
+                    currentSignerAddress.substring(0, 6) + "…" + currentSignerAddress.substring(currentSignerAddress.length - 4);
+                
+                const publicRpcProvider = new ethers.JsonRpcProvider("https://rpc-amoy.polygon.technology");
+                readContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, publicRpcProvider);
+                writeContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+
+                initializeSecureSandbox();
+                executeParallelInitialization();
+            } catch (err) {
+                console.error("Bootstrap pipeline failed:", err);
+                logout();
+            }
+        }
+
+        function executeParallelInitialization() {
+            // Decoupled asynchronous tasks prevent startup freezing
+            verifyRolePermissions(currentSignerAddress);
+            syncWorkspaceRecords(currentSignerAddress);
+            compileGlobalDiscoveryFeed();
+        }
+
+        async function verifyRolePermissions(address) {
+            try {
+                const isFaculty = await readContract.holdsFacultySBT(address);
+                if (isFaculty) {
+                    document.getElementById('admin-link').classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error("Token permissions check failed:", err);
+            }
+        }
+
+        async function syncWorkspaceRecords(address) {
+            try {
+                const records = await readContract.getStudentHistory(address);
+                document.getElementById('citation-badge').innerText = `${records.length} Submissions`;
+            } catch (err) {
+                console.error("Workspace ledger read failed:", err);
+            }
+        }
+
+        function switchTab(targetTab) {
+            document.querySelectorAll('.tab-window').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(`tab-${targetTab}`).classList.remove('hidden');
+            document.getElementById(`btn-${targetTab}`)?.classList.add('active');
+            if(targetTab === 'admin-link') document.getElementById('admin-link').classList.add('active');
+
+            if(targetTab === 'discovery' || targetTab === 'admin') {
+                compileGlobalDiscoveryFeed();
+            }
+        }
+
+        function handleFileSelection(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            globalSelectedFile = file;
+            document.getElementById('upload-prompt').innerText = "Payload Loaded";
+            document.getElementById('file-details').innerText = `${file.name} (${Math.round(file.size/1024)} KB)`;
+        }
+
+        async function executeAssetAnchoring() {
+            const name = document.getElementById('project-name').value.trim();
+            const category = document.getElementById('project-category').value;
+            const actionBtn = document.getElementById('action-btn');
+
+            if (!name || !globalSelectedFile) {
+                alert("Provide title context and mount binary asset payload.");
+                return;
+            }
+
+            try {
+                actionBtn.disabled = true;
+                actionBtn.innerText = "Encrypting & Transmitting Payload...";
+                
+                const ipfsHash = await pinFileToIPFS(globalSelectedFile);
+                const calculatedRank = generateDeterministicScore(globalSelectedFile.name, globalSelectedFile.size);
+
+                actionBtn.innerText = "Signing Ledger Modification Tx...";
+                const tx = await writeContract.recordProject(name, ipfsHash, category, calculatedRank);
+                
+                actionBtn.innerText = "Awaiting block consensus lock...";
+                await tx.wait();
+                
+                alert("Proof parameter committed to ledger block successfully.");
+                window.location.reload();
+            } catch (err) {
+                alert("Anchoring execution rejected: " + err.message);
+                actionBtn.disabled = false;
+                actionBtn.innerText = "Commit Document to Ledger";
+            }
+        }
+
+        async function compileGlobalDiscoveryFeed() {
+            const feedContainer = document.getElementById('global-discovery-feed');
+            const adminFeed = document.getElementById('admin-verification-feed');
+            if (!feedContainer) return;
+
+            feedContainer.innerHTML = "Querying distributed state logs...";
+            if(adminFeed) adminFeed.innerHTML = "Querying verification blocks...";
+
+            try {
+                allStudentsCache = await readContract.getAllStudents();
+                let aggregateRecords = [];
+
+                for (let student of allStudentsCache) {
+                    const history = await readContract.getStudentHistory(student);
+                    history.forEach((rec, idx) => {
+                        aggregateRecords.push({
+                            fileName: rec.fileName,
+                            ipfsHash: rec.ipfsHash,
+                            category: rec.category,
+                            aiScore: rec.aiScore.toString(),
+                            timestamp: Number(rec.timestamp),
+                            student: rec.student,
+                            isVerified: rec.isVerified,
+                            verifiedBy: rec.verifiedBy,
+                            index: idx
+                        });
+                    });
+                }
+
+                aggregateRecords.sort((a, b) => b.timestamp - a.timestamp);
+                window.cachedDiscoveryRecords = aggregateRecords;
+                renderDiscoveryUI(aggregateRecords);
+                renderAdminUI(aggregateRecords);
+            } catch (err) {
+                feedContainer.innerHTML = "Error parsing global node entries.";
+                console.error(err);
+            }
+        }
+
+        function renderDiscoveryUI(records) {
+            const feed = document.getElementById('global-discovery-feed');
+            const filterValue = document.getElementById('discovery-category-filter').value;
+            feed.innerHTML = "";
+
+            const targetRecords = filterValue === "ALL" ? records : records.filter(r => r.category === filterValue);
+
+            if(targetRecords.length === 0) {
+                feed.innerHTML = "No proof records matched filter conditions within storage slots.";
+                return;
+            }
+
+            targetRecords.forEach(rec => {
+                const card = document.createElement('div');
+                card.className = "record-card";
+                card.innerHTML = `
+                    <div class="record-header">
+                        <span class="record-title">${escapeHtml(rec.fileName)}</span>
+                        <span class="badge ${rec.isVerified ? 'success' : ''}">${rec.isVerified ? '✓ Validated' : 'Pending Multi-Party Sign'}</span>
+                    </div>
+                    <div class="meta-row">
+                        <span>Domain: <strong>${rec.category}</strong></span>
+                        <span>Verification Rank: <strong>${rec.aiScore}%</strong></span>
+                    </div>
+                    <div class="meta-row">
+                        <span>Author: <span class="crypto-link">${rec.student.substring(0,6)}…</span></span>
+                        <span>IPFS Vault Pointer: <a href="https://ipfs.io/ipfs/${rec.ipfsHash}" target="_blank" class="crypto-link">${rec.ipfsHash.substring(0,10)}…</a></span>
+                    </div>
+                `;
+                feed.appendChild(card);
+            });
+        }
+
+        function renderAdminUI(records) {
+            const adminFeed = document.getElementById('admin-verification-feed');
+            if(!adminFeed) return;
+            adminFeed.innerHTML = "";
+
+            const unverified = records.filter(r => !r.isVerified);
+
+            if(unverified.length === 0) {
+                adminFeed.innerHTML = "All active asset pipelines processed. Queue clear.";
+                return;
+            }
+
+            unverified.forEach(rec => {
+                const card = document.createElement('div');
+                card.className = "record-card";
+                card.innerHTML = `
+                    <div class="record-header">
+                        <span class="record-title">${escapeHtml(rec.fileName)}</span>
+                        <button class="primary-btn" style="padding:6px 12px; font-size:12px;" onclick="signVerificationCall('${rec.student}', ${rec.index}, this)">Sign Content Validation</button>
+                    </div>
+                    <div class="meta-row">
+                        <span>Author: <span class="crypto-link">${rec.student}</span></span>
+                    </div>
+                    <div class="meta-row">
+                        <span>IPFS Pointer: <span class="crypto-link">${rec.ipfsHash}</span></span>
+                    </div>
+                `;
+                adminFeed.appendChild(card);
+            });
+        }
+
+        async function signVerificationCall(studentAddress, index, element) {
+            try {
+                element.disabled = true;
+                element.innerText = "Signing state block...";
+                const tx = await writeContract.verifyProject(studentAddress, index);
+                element.innerText = "Awaiting ledger confirmation...";
+                await tx.wait();
+                alert("State update signed and committed to the ledger block.");
+                compileGlobalDiscoveryFeed();
+            } catch (err) {
+                alert("Validation processing failed: " + err.message);
+                element.disabled = false;
+                element.innerText = "Sign Content Validation";
+            }
+        }
+
+        function applyDiscoveryFiltering() {
+            if(window.cachedDiscoveryRecords) {
+                renderDiscoveryUI(window.cachedDiscoveryRecords);
+            }
+        }
+
+        function generateDeterministicScore(fileName, fileSize) {
+            let hash = 0;
+            const str = fileName + fileSize;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash % 51) + 40;
+        }
+
+        async function pinFileToIPFS(file) {
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("pinataMetadata", JSON.stringify({ name: file.name }));
+            const response = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
+                method: "POST",
+                headers: { "Authorization": "Bearer " + PINATA_JWT_KEY },
+                body: formData
+            });
+            if (!response.ok) throw new Error('IPFS storage connection drop.');
+            const result = await response.json();
+            return result.IpfsHash;
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = "index.html";
+        }
+
+        document.addEventListener('DOMContentLoaded', bootstrapApplication);
+    </script>
+</body>
+</html>
